@@ -1,0 +1,476 @@
+---
+title: "Actividad2_Final"
+author: "Antonio Maldonado Montemayor"
+date: "2023-05-03"
+output: html_document
+---
+
+### Instalación de librerías
+```{r}
+library(foreign)
+library(ggplot2)
+library(dplyr)
+library(regclass)
+library(mctest)
+library(lmtest)
+library(spdep)
+library(sf)
+library(spData)
+library(mapview)
+library(spatialreg)
+library(naniar)
+library(dlookr)
+library(caret)
+library(e1071)
+library(SparseM)
+library(Metrics)
+library(randomForest)
+library(rpart.plot)
+library(knitr)
+library(insight)
+library(rgeoda)
+library(rgeos)
+library(jtools)
+library(xgboost)
+library(DiagrammeR)
+library(effects)
+library(glmnet)
+library(writexl)
+library(ggplot2)
+library(sp)
+library(sf)
+library(maps)
+library(spdep)
+library(MASS)
+library(spmoran)
+library(spatialreg)
+library(coda)
+library(sphet)
+library(maptools)
+library(rgeos)
+library(ggmap)
+library(mapproj)
+library(RColorBrewer)
+library(ggsn)
+library(rlang)
+library(tidyverse)
+library(tigris)
+library(leaflet) 
+library(classInt)
+library(rgeoda)
+library(dplyr)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+library(sp)
+library(sf)
+library(maps)
+library(spdep)
+library(MASS)
+library(spmoran)
+library(spatialreg)
+library(coda)
+library(sphet)
+library(maptools)
+library(rgeos)
+library(ggmap)
+library(mapproj)
+library(RColorBrewer)
+library(ggsn)
+library(rlang)
+library(tidyverse)
+library(tigris)
+library(leaflet) 
+library(classInt)
+library(rgeoda)
+library(dplyr)
+library(gridExtra)
+library(grid)
+library(readxl)
+library(dplyr)
+library(foreign)
+library(ggplot2)
+library(regclass)
+library(mctest)
+library(lmtest)
+library(spdep)
+library(sf)
+library(spData)
+library(mapview)
+library(spatialreg)
+library(naniar)
+library(dlookr)
+library(caret)
+library(e1071)
+library(SparseM)
+library(Metrics)
+library(randomForest)
+library(rpart.plot)
+library(knitr)
+library(insight)
+library(rgeoda)
+library(rgeos)
+library(jtools)
+library(maptools)
+library(ggplot2)
+library(sp)
+library(sf)
+library(maps)
+library(spdep)
+library(MASS)
+library(spmoran)
+library(spatialreg)
+library(coda)
+library(sphet)
+library(maptools)
+library(rgeos)
+library(ggmap)
+library(mapproj)
+library(RColorBrewer)
+library(ggsn)
+library(rlang)
+library(tidyverse)
+library(tigris)
+library(leaflet) 
+library(classInt)
+library(rgeoda)
+library(gridExtra)
+library(grid)
+library(tmap)
+```
+
+
+Directorio 
+
+```{r}
+library(readr)
+df <- read_csv("C:/Users/lpdd_/Downloads/Act2 (1).csv")
+View(df)
+names(df)
+summary(df)
+```
+
+Crear un data set con las variables numericas 
+```{r}
+cordf <- df %>% select(n, taza, hogremjefmuj2015, hogrem2015, popden2020, inclusion_fin_2019, porcentaje_pob_servicios_salud,
+                       porcentaje_pob_pobreza, porcentaje_pob_servicios_salud, porcentaje_pob_acceso_ss, porcentaje_pob_pobreza_ext, rezago_social, popnoafmed2015,
+                       crimen_2019, pob_6.14_no_edu, gini2015, total_2021)
+```
+
+
+Hacer un corplot para ver que variables utilizaremos en la regresion 
+```{r}
+correlate(cordf, n, taza, hogremjefmuj2015, hogrem2015, popden2020, inclusion_fin_2019, porcentaje_pob_servicios_salud,
+          porcentaje_pob_pobreza, porcentaje_pob_servicios_salud, porcentaje_pob_acceso_ss, porcentaje_pob_pobreza_ext, rezago_social, popnoafmed2015,
+          crimen_2019, pob_6.14_no_edu, gini2015, total_2021) %>%  plot() 
+
+```
+
+Utilizaremos las variables: n, porcentaje_pob_acceso_ss, inclusion_fin_2019, popden2020 y hogremjefmuj2015 para medir la taza la cual indica casos de covid por cada 10 habitantes. 
+
+data set con las variables que utilizaremos 
+```{r}
+dfa <- df %>% select(taza, n, porcentaje_pob_pobreza, porcentaje_pob_pobreza_ext, porcentaje_pob_servicios_salud, porcentaje_pob_acceso_ss, hogremjefmuj2015, pob_6.14_no_edu, popden2020, inclusion_fin_2019)
+
+```
+
+Crear un Train y un test para los modelos y las comparaciones 
+```{r}
+set.seed(123)
+partition <- createDataPartition(y = dfa$taza, p=0.7, list = F)
+train = dfa[partition, ]
+test <- dfa[-partition, ]
+
+```
+
+Eliminar NAs 
+```{r}
+#Substituir NA de train por la mediana 
+
+train[is.na(train)] <- 22
+
+summary(train)
+
+#Substituir NA de test por la mediana 
+
+summary(test)
+
+test[is.na(test)] <- 21
+summary(test)
+```
+
+```{r}
+# Modelo de regression 
+lmModel9 <- lm(taza ~ n +  + porcentaje_pob_pobreza_ext + porcentaje_pob_acceso_ss + porcentaje_pob_pobreza + inclusion_fin_2019 + popden2020 + hogremjefmuj2015, data = train)
+
+summary(lmModel9)
+
+# Checar VIF
+VIF(lmModel9)
+
+prediction_lm_model9 <- lmModel10 %>% predict(test)
+RMSE(prediction_lm_model9, test$taza)
+```
+
+Eliminareos las variables que tienen un valor arriva de 5 en el VIF ya que estas tienen presencia de multicolinealidad
+
+
+Nuevo modelo 
+
+```{r}
+lmModel10 <- lm(taza ~ n + porcentaje_pob_acceso_ss + inclusion_fin_2019 + popden2020 + hogremjefmuj2015, data = train)
+summary(lmModel10)
+```
+
+Efecto de porcentaje_pob_acceso_ss en la variable dependiente Taza 
+```{r}
+plot(effect("porcentaje_pob_acceso_ss", lmModel10))
+
+```
+Existe una relación negativa entre la variable predictora y la variable de respuesta
+
+
+Diagnóstico de multicolinealidad potencial en los resultados de regresión estimados
+```{r}
+VIF(lmModel10)
+```
+Ya no hay presencia de multicolinealidad 
+
+
+
+Diagnóstico de heteroscedasticidad potencial en los resultados de regresión estimados.
+```{r}
+bptest(lmModel10)
+
+```
+No hay heterocedasticidad en el modelo basado en el valor p
+
+
+
+Residual vs. fitted plot
+```{r}
+plot(fitted(lmModel10), resid(lmModel10), main="Linear Regression Residual vs. Fitted Values", xlab = "Fitted Values", ylab = "Residuals")
+abline(0,0)
+
+```
+Podemos ver valores atípicos en nuestros datos, sin embargo, la mayoría de los residuos están agrupados y cerca de nuestra línea, lo que significa que la suposición de que la relación es lineal es razonable.
+
+
+Normality of residuals
+```{r}
+hist(lmModel10$residuals, xlab = "Estimated Regression Residuals", main='Distribution of OLS Estimated Regression Residuals', col='lightblue', border="white")
+
+```
+Podemos observar una distribución normal con la mayoría de nuestros residuos agrupados alrededor de cero y algunos más lejos de cero.
+
+
+Prediccion de RMSE
+```{r}
+prediction_lm_model10 <- lmModel10 %>% predict(test)
+RMSE(prediction_lm_model10, test$taza)
+```
+Podemos ver que nuestro RMSE es alto 
+
+Hgamaos un WLS para ver si podemos mejorar nuestro modelo 
+
+Weighted Least Squares - WLS
+```{r}
+wt <- 1 / lm(abs(lmModel10$residuals) ~ lmModel10$fitted.values)$fitted.values^2
+wls_model <- lm(taza ~ n + porcentaje_pob_acceso_ss + inclusion_fin_2019 + popden2020 + hogremjefmuj2015, data = train, weights = wt)
+summary(wls_model)
+```
+
+bptest 
+```{r}
+bptest(wls_model)
+```
+El p value es mayor al nivel de significancia de 0.05, esto significa que no hay evidencia significativa de heteroscedasticidad en el modelo de regresión y las varianzas de los residuos son relativamente constantes a través de diferentes niveles de las variables independientes.
+
+
+Residual vs. fitted plot
+```{r}
+plot(fitted(wls_model), resid(wls_model), main="Residual vs. Fitted Values", xlab="Fitted Values", ylab="Residuals")
+abline(0,0)
+```
+dado que podemos observar un patrón decreciente en nuestros residuales, podemos determinar que el modelo puede no estar capturando alguna estructura subyacente en los datos, ai mismo los residuales pueden no estar distribuidos aleatoriamente.
+
+
+RMSE
+```{r}
+prediction_wls_model <- wls_model %>% predict(test)
+RMSE(prediction_wls_model, test$taza)
+```
+Podemos observar que el RMSE es mucho mayor en este modelo en comparacion a nuestro modelo OLS. 
+
+
+
+```{r }
+library(xgboost)
+
+datos<-read.csv("C:/Users/lpdd_/Downloads/Act2 (1).csv") 
+
+
+datos$mpio <- as.factor(datos$mpio)
+datos$grado_rs <- as.factor(datos$grado_rs)
+datos$porcentaje_pob_pobreza <- as.numeric(gsub("[%,]", "", datos$porcentaje_pob_pobreza))
+datos$porcentaje_pob_pobreza_ext <- as.numeric(gsub("[%,]", "", datos$porcentaje_pob_pobreza_ext))
+datos$porcentaje_pob_servicios_salud <- as.numeric(gsub("[%,]", "", datos$porcentaje_pob_servicios_salud))
+datos$porcentaje_pob_acceso_ss <- as.numeric(gsub("[%,]", "", datos$porcentaje_pob_acceso_ss))
+
+datos <- datos[complete.cases(datos),]
+```
+
+#El sistema de modelaje en xgboost solamente acepta valores numericos o de factores por lo que tuvimos que transformar las variables de caracteres a factores y eliminar los valores faltantes ya que cualquier valor con NA no lo aceptaria el modelo
+
+```{r }
+
+set.seed(123)
+indices_entrenamiento <- sample(nrow(datos), 0.7 * nrow(datos))
+X_train <- datos[indices_entrenamiento, c("cve_ent", "mpio", "poblacion_2022", "hogrem2015", "hogremjefmuj2015", "popnoafmed2015", "gini2015", "popden2020", "crimen_2018", "crimen_2019", "inclusion_fin_2019", "porcentaje_pob_pobreza", "porcentaje_pob_pobreza_ext", "porcentaje_pob_servicios_salud", "porcentaje_pob_acceso_ss", "pob_6.14_no_edu", "rezago_social")]
+y_train <- datos[indices_entrenamiento, "taza"]
+X_test <- datos[-indices_entrenamiento, c("cve_ent", "mpio", "poblacion_2022", "hogrem2015", "hogremjefmuj2015", "popnoafmed2015", "gini2015", "popden2020", "crimen_2018", "crimen_2019", "inclusion_fin_2019", "porcentaje_pob_pobreza", "porcentaje_pob_pobreza_ext", "porcentaje_pob_servicios_salud", "porcentaje_pob_acceso_ss", "pob_6.14_no_edu", "rezago_social")]
+y_test <- datos[-indices_entrenamiento, "taza"]
+
+X_train <- apply(X_train, 2, as.numeric) 
+# convertir  columnas a numéricas
+modelo <- xgboost(data = X_train, label = y_train, nrounds = 50, objective = "reg:squarederror")
+
+
+y_train <- datos[indices_entrenamiento, "taza"]
+
+
+X_test <- apply(X_test, 2, as.numeric) # convertir columnas a numéricas
+y_pred <- predict(modelo, newdata = X_test)
+
+y_test <- datos[-indices_entrenamiento, "taza"]
+
+```
+#Se genera el "indices_entrenamiento" para generar una muestra aleatoria de los datos mediante la funcion sample con el tamaño de la muestra de .7 para el entrenamiento de los datos para buscar reducir el sesgo en los datos mediante el uso del cross validation en los datos
+
+```{r }
+# Entrenar modelo 
+set.seed(123)
+modelo <- xgboost(data = as.matrix(X_train), label = y_train,
+                          nrounds = 50,
+                          max_depth = 3,
+                          eta = 0.1,
+                          gamma =  0.1,
+                          colsample_bytree = 0.5,
+                          min_child_weight =  1,
+                          subsample =  .7,objective = "reg:squarederror")
+
+# Predecir valores 
+predicciones <- predict(modelo, as.matrix(X_test))
+
+# Mse error
+mse <- mean((predicciones - y_test)^2)
+mse
+
+head(y_pred, 10)
+```
+#se convierten los datos como matriz ya que principalmente estaban estructurados como un data frame y este objeto no se acepta en el modelo de xgboost en la funcion se utlizaron 50 arboles de desicion para entrenar el modelo y como argumento en objective se puso squareerror para intentar minimizar el MSE y realizar predicciones mas precisas 
+
+
+```{r }
+
+library(ggplot2)
+
+df_pred <- data.frame(y_pred = y_pred[1:100], y_test = y_test[1:100])
+
+# Grafica para ver los valores repetidos comparados con los reales
+ggplot(df_pred, aes(x = y_test, y = y_pred)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  labs(title = "Predicciones vs Valores reales",
+       x = "Valores reales",
+       y = "Predicciones")
+
+
+
+```
+
+#Con esta grafica podemos ver el resultados de nuestras proyecciones en una tasa de incidencia de poblacion por cada 10 habitantes comparado con los valores reales donde podemos ver los puntos que son nuestras proyecciones y la linea roja es el numero real. Gracias a esto podemos ver como nuestras proyecciones estan acercadas a la realidad excepto por unos outliers de predicciones
+
+# Map Data Visualization
+
+```{r}
+# lets import shapefile so we can display spatial data 
+map<-readShapePoly("C:/Users/lpdd_/Downloads/spda_covid19 (1)/spda_covid19/shp_mx_mpios/mx_mpios.shp",IDvar="IDUNICO",proj4string=CRS("+proj=longlat")) ### reads data from a polygon shapefile.
+lmat<-coordinates(map)
+names(lmat)<-c("lon","lat")
+map.centroid<-coordinates(map)  
+summary(map)
+```
+
+```{r}
+map_sf<-read_sf("C:/Users/lpdd_/Downloads/spda_covid19 (1)/spda_covid19/shp_mx_mpios/mx_mpios.shp")
+```
+
+### **Mostrar mapa con los municipios de Mexico**
+
+```{r}
+plot(map,col="grey",border="blue",axes=TRUE,las=1) + title(main="Municipios de Mexico")
+```
+
+```{r}
+map_dataa<-geo_join(map,datos,'IDUNICO','cve_ent',how='inner')
+```
+### **Spatial Connectivity Matrix**
+```{r}
+map.link<-poly2nb(map_dataa,queen=T)              
+map.linkW<-nb2listw(map.link, style="W")     
+plot(map_dataa,border="blue",axes=FALSE,las=1)
+plot(map_dataa,col="grey",border=grey(0.9),axes=T,add=T) 
+title("Spatial Connectivity Matrix - Contiguity Case (Queen)")
+```
+
+### SPATIAL REGRESSION ANALYSIS
+
+## Spatial Error Model
+
+A continuación se presenta el modelo de regresión espacial de errores. La variable que utilizamos fue la taza de personas con covid por cada 10 habitantes. Las variables que fuerón utilizadas para el análisis son todas las de la base de datos a excepción del municipio como tal. 
+```{r}
+spatialerror<-  subset(map_dataa, select = -mpio)
+spatial_error_model <- errorsarlm(taza~rezago_social + hogrem2015, data = map_dataa, map.linkW, method = "Matrix")
+summary(spatial_error_model)
+```
+
+Aquí estamos sacando el sqrt mean error donde se comparan la taza de covid que habíamos sacado con los valores ajustados del modelo anterior. 
+```{r}
+sqrt(mean((map_dataa$taza - spatial_error_model$fitted.values)^2))
+```
+
+### Spatial Autorregressive Model
+
+En esta sección se utiliza el spatial autoregressive model para tener una comparativa con el modelo anterior. Se utiliza la verisión de lagsarlm. 
+```{r}
+spatial_lag_model <- lagsarlm(taza ~ rezago_social + hogrem2015, data = map_dataa, map.linkW, method = "Matrix")
+summary(spatial_lag_model)
+```
+
+Aquí sacamos la sqrt mean error para observar la validez de nuestro modelo de los valores reales vs los modelos ajustados. 
+```{r}
+sqrt(mean((map_dataa$taza - spatial_lag_model$fitted.values)^2))
+```
+
+##· Recomendaciones
+1- Conociendo que la zona del centro del país son zonas excesivamente pobladas, los contagios pueden ser sumamente rápidos debido a la densidad. Nos referimos a las cuestiones de habitantes que viven por km cuadrado, y suele por lo tanto ser puntos de contagio más vulnerables. Por lo tanto se recomienda la atención de clínicas a estas zonas para que puedan tener por ejemplo más recursos para personas en situación de vulnerabilidad, revisar inversiones, accesos, limpieza, y seguir protocolos con el fin de que puedan alcanzar los servicios de salud la mayor cantidad de personas. 
+
+2- Es importante considerar la distribución de presupuesto por parte del gobierno y asegurarse de que los mismos sean aplicados en recursos que puedan ser aplicados a las zonas vulnerables y marginadas con el fin de que en zonas rurales del centro también puedan ser considerados por las instituciones, para pensar en alternativas como clínicas móviles, ambulancias, o opciones más cercanas para personas que están más lejos y tienen menos hospitales cerca de ellos. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
